@@ -420,8 +420,16 @@ sqrt(z::Complex) = sqrt(float(z))
 #     return Complex(abs(iz)/r/2, copysign(r,iz))
 # end
 
+function cis(v::Union{Float64,Float32})
+    res = FastMath.cis_fast(v) # Note: not yet defined at this point
+    return Math.nan_dom_err(res, v)
+end
+
 # compute exp(im*theta)
-cis(theta::Real) = Complex(cos(theta),sin(theta))
+cis(theta::AbstractFloat) = Complex(cos(theta),sin(theta))
+
+# Convert integer/irrational to float so that they can also use the `sincos` path
+cis(theta::Real) = cis(float(theta))
 
 """
     cis(z)

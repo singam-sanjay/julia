@@ -273,6 +273,38 @@ atan2_fast(x::Float64, y::Float64) =
 
 # explicit implementations
 
+# FIXME: Change to `ccall((:sincos, libm))` when `Ref` calling convention can be
+#        stack allocated.
+@inline function cis_fast(v::Float64)
+    s, c = Base.llvmcall("""
+    %f = bitcast i8 *%1 to void (double, double *, double *)*
+    %pres = alloca [2 x double]
+    %p1 = getelementptr inbounds [2 x double], [2 x double]* %pres, i64 0, i64 0
+    %p2 = getelementptr inbounds [2 x double], [2 x double]* %pres, i64 0, i64 1
+    call void %f(double %0, double *nocapture noalias %p1, double *nocapture noalias %p2)
+    %res = load [2 x double], [2 x double]* %pres
+    ret [2 x double] %res
+    """, Tuple{Float64,Float64}, Tuple{Float64,Ptr{Void}}, v, cglobal((:sincos, libm)))
+    return Complex(c, s)
+end
+
+@inline function cis_fast(v::Float32)
+    s, c = Base.llvmcall("""
+    %f = bitcast i8 *%1 to void (float, float *, float *)*
+    %pres = alloca [2 x float]
+    %p1 = getelementptr inbounds [2 x float], [2 x float]* %pres, i64 0, i64 0
+    %p2 = getelementptr inbounds [2 x float], [2 x float]* %pres, i64 0, i64 1
+    call void %f(float %0, float *nocapture noalias %p1, float *nocapture noalias %p2)
+    %res = load [2 x float], [2 x float]* %pres
+    ret [2 x float] %res
+    """, Tuple{Float32,Float32}, Tuple{Float32,Ptr{Void}}, v, cglobal((:sincosf, libm)))
+    return Complex(c, s)
+end
+
+# Fallback for `::AbstractFloat` that's more specific than `::Real`
+cis_fast(x::AbstractFloat) = cis(x)
+cis_fast(v::Real) = cis_fast(float(v)::AbstractFloat)
+
 @fastmath begin
     exp10_fast(x::T) where {T<:FloatTypes} = exp2(log2(T(10))*x)
     exp10_fast(x::Integer) = exp10(float(x))
@@ -286,8 +318,6 @@ atan2_fast(x::Float64, y::Float64) =
     minmax_fast(x::T, y::T) where {T<:FloatTypes} = ifelse(y > x, (x,y), (y,x))
 
     # complex numbers
-
-    cis_fast(x::T) where {T<:FloatTypes} = Complex{T}(cos(x), sin(x))
 
     # See <http://en.cppreference.com/w/cpp/numeric/complex>
     pow_fast(x::T, y::T) where {T<:ComplexTypes} = exp(y*log(x))
