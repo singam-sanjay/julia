@@ -2524,9 +2524,6 @@ end
 #### do the work of inference ####
 
 function typeinf_work(frame::InferenceState)
-    global global_sv # TODO: actually pass this to all functions that need it
-    last_global_sv = global_sv
-    global_sv = frame
     @assert !frame.inferred
     W = frame.ip
     s = frame.stmt_types
@@ -2671,8 +2668,6 @@ function typeinf_work(frame::InferenceState)
     end
 end
 
-global_sv = nothing
-
 function typeinf(frame::InferenceState)
     while have_next_callee(frame)
         typeinf_work(frame)
@@ -2687,7 +2682,6 @@ function typeinf(frame::InferenceState)
         finish(frame)
         finalize_backedges(frame)
     end
-    global_sv = last_global_sv
     nothing
 end
 
