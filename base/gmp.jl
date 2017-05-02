@@ -70,7 +70,7 @@ function __init__()
 end
 
 
-module mpz
+module MPZ
 # wrapping of libgmp functions
 # "output parameters" are labeled x, y, z, and are returned when appropriate
 # constant input parameter are labeled a, b, c
@@ -153,8 +153,11 @@ get_d(a::BigInt) = ccall((:__gmpz_get_d, :libgmp), Cdouble, (Ptr{BigInt},), &a)
 
 limbs_write(x::BigInt, a) = ccall((:__gmpz_limbs_write, :libgmp), Ptr{Limb}, (Ptr{BigInt}, Clong), &x, a)
 limbs_finish(x::BigInt, a) = ccall((:__gmpz_limbs_finish, :libgmp), Void, (Ptr{BigInt}, Clong), &x, a)
+import_(x::BigInt, a, b, c, d, e, f) =
+    ccall((:__gmpz_import, :libgmp), Void, (Ptr{BigInt}, Csize_t, Cint, Csize_t, Cint, Csize_t, Ptr{Void}),
+          &x, a, b, c, d, e, f)
 
-end # module mpz
+end # module MPZ
 
 widen(::Type{Int128})  = BigInt
 widen(::Type{UInt128}) = BigInt
@@ -183,7 +186,7 @@ function tryparse_internal(::Type{BigInt}, s::AbstractString, startpos::Int, end
     if Base.containsnul(bstr)
         err = -1 # embedded NUL char (not handled correctly by GMP)
     else
-        err = mpz.set_str(z, pointer(bstr)+(i-start(bstr)), base)
+        err = MPZ.set_str(z, pointer(bstr)+(i-start(bstr)), base)
     end
     if err != 0
         raise && throw(ArgumentError("invalid BigInt: $(repr(bstr))"))
@@ -192,11 +195,11 @@ function tryparse_internal(::Type{BigInt}, s::AbstractString, startpos::Int, end
     Nullable(sgn < 0 ? -z : z)
 end
 
-convert(::Type{BigInt}, x::Union{Clong,Int32}) = mpz.set_si(x)
-convert(::Type{BigInt}, x::Union{Culong,UInt32}) = mpz.set_ui(x)
+convert(::Type{BigInt}, x::Union{Clong,Int32}) = MPZ.set_si(x)
+convert(::Type{BigInt}, x::Union{Culong,UInt32}) = MPZ.set_ui(x)
 convert(::Type{BigInt}, x::Bool) = BigInt(UInt(x))
 
-unsafe_trunc(::Type{BigInt}, x::Union{Float32,Float64}) = mpz.set_d(x)
+unsafe_trunc(::Type{BigInt}, x::Union{Float32,Float64}) = MPZ.set_d(x)
 
 function convert(::Type{BigInt}, x::Union{Float32,Float64})
     isinteger(x) || throw(InexactError())
@@ -274,7 +277,7 @@ function convert(::Type{T}, x::BigInt) where T<:Signed
 end
 
 
-(::Type{Float64})(n::BigInt, ::RoundingMode{:ToZero}) = mpz.get_d(n)
+(::Type{Float64})(n::BigInt, ::RoundingMode{:ToZero}) = MPZ.get_d(n)
 
 function (::Type{T})(n::BigInt, ::RoundingMode{:ToZero}) where T<:Union{Float16,Float32}
     T(Float64(n,RoundToZero),RoundToZero)
@@ -323,7 +326,7 @@ for (fJ, fC) in ((:+, :add), (:-,:sub), (:*, :mul),
                  (:gcd, :gcd), (:lcm, :lcm),
                  (:&, :and), (:|, :ior), (:xor, :xor))
     @eval begin
-        ($fJ)(x::BigInt, y::BigInt) = mpz.$fC(x, y)
+        ($fJ)(x::BigInt, y::BigInt) = MPZ.$fC(x, y)
     end
 end
 
@@ -335,7 +338,7 @@ function invmod(x::BigInt, y::BigInt)
     if ya == 1
         return z
     end
-    if (y==0 || mpz.invert(z, x, ya) == 0)
+    if (y==0 || MPZ.invert(z, x, ya) == 0)
         throw(DomainError())
     end
     # GMP always returns a positive inverse; we instead want to
@@ -352,60 +355,60 @@ end
 for (fJ, fC) in ((:+, :add), (:*, :mul), (:&, :and), (:|, :ior), (:xor, :xor))
     fC! = Symbol(fC, :!)
     @eval begin
-        ($fJ)(a::BigInt, b::BigInt, c::BigInt) = mpz.$fC!(mpz.$fC(BigInt(), a, b), c)
-        ($fJ)(a::BigInt, b::BigInt, c::BigInt, d::BigInt) = mpz.$fC!(mpz.$fC!(mpz.$fC(BigInt(), a, b), c), d)
+        ($fJ)(a::BigInt, b::BigInt, c::BigInt) = MPZ.$fC!(MPZ.$fC(BigInt(), a, b), c)
+        ($fJ)(a::BigInt, b::BigInt, c::BigInt, d::BigInt) = MPZ.$fC!(MPZ.$fC!(MPZ.$fC(BigInt(), a, b), c), d)
         ($fJ)(a::BigInt, b::BigInt, c::BigInt, d::BigInt, e::BigInt) =
-            mpz.$fC!(mpz.$fC!(mpz.$fC!(mpz.$fC(BigInt(), a, b), c), d), e)
+            MPZ.$fC!(MPZ.$fC!(MPZ.$fC!(MPZ.$fC(BigInt(), a, b), c), d), e)
     end
 end
 
 # Basic arithmetic without promotion
-+(x::BigInt, c::CulongMax) = mpz.add_ui(x, c)
++(x::BigInt, c::CulongMax) = MPZ.add_ui(x, c)
 +(c::CulongMax, x::BigInt) = x + c
 
--(x::BigInt, c::CulongMax) = mpz.sub_ui(x, c)
--(c::CulongMax, x::BigInt) = mpz.ui_sub(c, x)
+-(x::BigInt, c::CulongMax) = MPZ.sub_ui(x, c)
+-(c::CulongMax, x::BigInt) = MPZ.ui_sub(c, x)
 
 +(x::BigInt, c::ClongMax) = c < 0 ? -(x, -(c % Culong)) : x + convert(Culong, c)
 +(c::ClongMax, x::BigInt) = c < 0 ? -(x, -(c % Culong)) : x + convert(Culong, c)
 -(x::BigInt, c::ClongMax) = c < 0 ? +(x, -(c % Culong)) : -(x, convert(Culong, c))
 -(c::ClongMax, x::BigInt) = c < 0 ? -(x + -(c % Culong)) : -(convert(Culong, c), x)
 
-*(x::BigInt, c::CulongMax) = mpz.mul_ui(x, c)
+*(x::BigInt, c::CulongMax) = MPZ.mul_ui(x, c)
 *(c::CulongMax, x::BigInt) = x * c
-*(x::BigInt, c::ClongMax) = mpz.mul_si(x, c)
+*(x::BigInt, c::ClongMax) = MPZ.mul_si(x, c)
 *(c::ClongMax, x::BigInt) = x * c
 
 /(x::BigInt, y::Union{ClongMax,CulongMax}) = float(x)/y
 /(x::Union{ClongMax,CulongMax}, y::BigInt) = x/float(y)
 
 # unary ops
-(-)(x::BigInt) = mpz.neg(x)
-(~)(x::BigInt) = mpz.com(x)
+(-)(x::BigInt) = MPZ.neg(x)
+(~)(x::BigInt) = MPZ.com(x)
 
-<<(x::BigInt, c::UInt) = c == 0 ? x : mpz.mul_2exp(x, c)
->>(x::BigInt, c::UInt) = c == 0 ? x : mpz.fdiv_q_2exp(x, c)
+<<(x::BigInt, c::UInt) = c == 0 ? x : MPZ.mul_2exp(x, c)
+>>(x::BigInt, c::UInt) = c == 0 ? x : MPZ.fdiv_q_2exp(x, c)
 >>>(x::BigInt, c::UInt) = x >> c
 
-trailing_zeros(x::BigInt) = mpz.scan1(x, 0)
-trailing_ones(x::BigInt) = mpz.scan0(x, 0)
+trailing_zeros(x::BigInt) = MPZ.scan1(x, 0)
+trailing_ones(x::BigInt) = MPZ.scan0(x, 0)
 
-count_ones(x::BigInt) = mpz.popcount(x)
+count_ones(x::BigInt) = MPZ.popcount(x)
 
-divrem(x::BigInt, y::BigInt) = mpz.tdiv_qr(x, y)
+divrem(x::BigInt, y::BigInt) = MPZ.tdiv_qr(x, y)
 
-cmp(x::BigInt, y::BigInt) = mpz.cmp(x, y)
-cmp(x::BigInt, y::ClongMax) = mpz.cmp_si(x, y)
-cmp(x::BigInt, y::CulongMax) = mpz.cmp_ui(x, y)
+cmp(x::BigInt, y::BigInt) = MPZ.cmp(x, y)
+cmp(x::BigInt, y::ClongMax) = MPZ.cmp_si(x, y)
+cmp(x::BigInt, y::CulongMax) = MPZ.cmp_ui(x, y)
 cmp(x::BigInt, y::Integer) = cmp(x, big(y))
 cmp(x::Integer, y::BigInt) = -cmp(y, x)
 
-cmp(x::BigInt, y::CdoubleMax) = isnan(y) ? throw(DomainError()) : mpz.cmp_d(x, y)
+cmp(x::BigInt, y::CdoubleMax) = isnan(y) ? throw(DomainError()) : MPZ.cmp_d(x, y)
 cmp(x::CdoubleMax, y::BigInt) = -cmp(y, x)
 
-isqrt(x::BigInt) = mpz.sqrt(x)
+isqrt(x::BigInt) = MPZ.sqrt(x)
 
-^(x::BigInt, y::Culong) = mpz.pow_ui(x, y)
+^(x::BigInt, y::Culong) = MPZ.pow_ui(x, y)
 
 function bigint_pow(x::BigInt, y::Integer)
     if y<0; throw(DomainError()); end
@@ -434,7 +437,7 @@ end
 ^(x::Bool   , y::BigInt ) = Base.power_by_squaring(x, y)
 
 function powermod(x::BigInt, p::BigInt, m::BigInt)
-    r = mpz.powm(x, p, m)
+    r = MPZ.powm(x, p, m)
     return m < 0 && r > 0 ? r + m : r # choose sign conistent with mod(x^p, m)
 end
 
@@ -444,7 +447,7 @@ function gcdx(a::BigInt, b::BigInt)
     if b == 0 # shortcut this to ensure consistent results with gcdx(a,b)
         return a < 0 ? (-a,-one(BigInt),zero(BigInt)) : (a,one(BigInt),zero(BigInt))
     end
-    g, s, t = mpz.gcdext(a, b)
+    g, s, t = MPZ.gcdext(a, b)
     if t == 0
         # work around a difference in some versions of GMP
         if a == b
@@ -456,11 +459,11 @@ function gcdx(a::BigInt, b::BigInt)
     g, s, t
 end
 
-sum(arr::AbstractArray{BigInt}) = foldl(mpz.add!, BigInt(0), arr)
+sum(arr::AbstractArray{BigInt}) = foldl(MPZ.add!, BigInt(0), arr)
 
-factorial(x::BigInt) = x.size < 0 ? BigInt(0) : mpz.fac_ui(x)
+factorial(x::BigInt) = x.size < 0 ? BigInt(0) : MPZ.fac_ui(x)
 
-binomial(n::BigInt, k::UInt) = mpz.bin_ui(n, k)
+binomial(n::BigInt, k::UInt) = MPZ.bin_ui(n, k)
 binomial(n::BigInt, k::Integer) = k < 0 ? BigInt(0) : binomial(n, UInt(k))
 
 ==(x::BigInt, y::BigInt) = cmp(x,y) == 0
@@ -499,7 +502,7 @@ function base(b::Integer, n::BigInt)
     2 <= b <= 62 || throw(ArgumentError("base must be 2 ≤ base ≤ 62, got $b"))
     nd = ndigits(n, b)
     str = Base._string_n(n < 0 ? nd+1 : nd)
-    mpz.get_str(str, b, n)
+    MPZ.get_str(str, b, n)
 end
 
 function base(b::Integer, n::BigInt, pad::Integer)
@@ -519,11 +522,11 @@ end
 function ndigits0z(x::BigInt, b::Integer=10)
     b < 2 && throw(DomainError())
     if ispow2(b) && 2 <= b <= 62 # GMP assumes b is in this range
-        mpz.sizeinbase(x, b)
+        MPZ.sizeinbase(x, b)
     else
         # non-base 2 mpz_sizeinbase might return an answer 1 too big
         # use property that log(b, x) < ndigits(x, b) <= log(b, x) + 1
-        n = mpz.sizeinbase(x, 2)
+        n = MPZ.sizeinbase(x, 2)
         lb = log2(b) # assumed accurate to <1ulp (true for openlibm)
         q,r = divrem(n,lb)
         iq = Int(q)
@@ -560,7 +563,7 @@ function Base.deepcopy_internal(x::BigInt, stackdict::ObjectIdDict)
     if haskey(stackdict, x)
         return stackdict[x]
     end
-    y = mpz.set(x)
+    y = MPZ.set(x)
     stackdict[x] = y
     return y
 end

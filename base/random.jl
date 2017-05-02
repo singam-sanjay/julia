@@ -3,7 +3,7 @@
 module Random
 
 using Base.dSFMT
-using Base.GMP: GMP_VERSION, Limb, mpz
+using Base.GMP: GMP_VERSION, Limb, MPZ
 import Base: copymutable, copy, copy!, ==
 
 export srand,
@@ -624,14 +624,13 @@ if GMP_VERSION.major >= 6
         x = BigInt()
         while true
             # note: on CRAY computers, the second argument may be of type Cint (48 bits) and not Clong
-            xd = mpz.limbs_write(x, g.nlimbs)
+            xd = MPZ.limbs_write(x, g.nlimbs)
             limbs = unsafe_wrap(Array, xd, g.nlimbs)
             rand!(rng, limbs)
             limbs[end] &= g.mask
-            mpz.limbs_finish(x, g.nlimbs)
-            x <= g.m && break
+            MPZ.limbs_finish(x, g.nlimbs)
+            x <= g.m && return MPZ.add!(x, g.a)
         end
-        mpz.add!(x, g.a)
     end
 else
     function rand(rng::AbstractRNG, g::RangeGeneratorBigInt)
@@ -639,13 +638,9 @@ else
         while true
             rand!(rng, g.limbs)
             g.limbs[end] &= g.mask
-            ccall((:__gmpz_import, :libgmp), Void,
-                  (Ptr{BigInt}, Csize_t, Cint, Csize_t, Cint, Csize_t, Ptr{Limb}),
-                  &x, length(g.limbs), -1, sizeof(Limb), 0, 0, g.limbs)
-            x <= g.m && break
+            MPZ.import_(x, length(g.limbs), -1, sizeof(Limb), 0, 0, g.limbs)
+            x <= g.m && return MPZ.add!(x, g.a)
         end
-        ccall((:__gmpz_add, :libgmp), Void, (Ptr{BigInt}, Ptr{BigInt}, Ptr{BigInt}), &x, &x, &g.a)
-        return x
     end
 end
 
