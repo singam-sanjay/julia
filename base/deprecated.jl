@@ -1324,5 +1324,11 @@ end
 
 # END 0.6 deprecations
 
+# #21709
+@deprecate cov(x::AbstractVector, corrected::Bool) cov(x, corrected=corrected)
+@deprecate cov(x::AbstractMatrix, vardim::Int, corrected::Bool) cov(x, corrected=corrected)
+@deprecate cov(X::AbstractVector, Y::AbstractVector, corrected::Bool) cov(X, Y, corrected=corrected)
+@deprecate cov(X::AbstractVecOrMat, Y::AbstractVecOrMat, vardim::Int, corrected::Bool) cov(X, Y, vardim, corrected=corrected)
+
 # BEGIN 1.0 deprecations
 # END 1.0 deprecations
