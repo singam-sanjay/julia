@@ -31,7 +31,7 @@ cd(dirname(@__FILE__)) do
     if net_on
         n = min(Sys.CPU_CORES, length(tests))
         if n > 1
-            addprocs_with_testenv(n)
+            JuliaTestEnv.addprocs(n)
             @sync for p in workers()
                 @async remotecall_fetch(include, p, "testdefs.jl")
             end
@@ -65,7 +65,7 @@ cd(dirname(@__FILE__)) do
                     if (isa(resp[end], Integer) && (resp[end] > max_worker_rss)) || isa(resp, Exception)
                         if n > 1
                             rmprocs(wrkr, waitfor=30)
-                            p = addprocs_with_testenv(1)[1]
+                            p = JuliaTestEnv.addprocs(1)[1]
                             remotecall_fetch(include, p, "testdefs.jl")
                         else
                             # single process testing, bail if mem limit reached, or, on an exception.

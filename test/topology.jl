@@ -1,6 +1,6 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
 
-pids = addprocs_with_testenv(4; topology="master_slave")
+pids = JuliaTestEnv.addprocs(4; topology="master_slave")
 p1 = pids[1]
 p2 = pids[2]
 
@@ -64,7 +64,7 @@ function Base.manage(manager::TopoTestManager, id::Integer, config::WorkerConfig
     end
 end
 
-addprocs_with_testenv(TopoTestManager(8); topology="custom")
+JuliaTestEnv.addprocs(TopoTestManager(8); topology="custom")
 
 while true
     if any(x->get(map_pid_ident, x, 0)==0, workers())

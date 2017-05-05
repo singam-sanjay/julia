@@ -10,7 +10,7 @@ include("testdefs.jl")
         1
     end
 
-addprocs_with_testenv(4)
+JuliaTestEnv.addprocs(4)
 
 id_me = myid()
 id_other = filter(x -> x != id_me, procs())[rand(1:(nprocs()-1))]
@@ -943,22 +943,22 @@ if is_unix() # aka have ssh
     end
 
     print("\nTesting SSH addprocs with $(length(hosts)) workers...\n")
-    new_pids = addprocs_with_testenv(hosts; sshflags=sshflags)
+    new_pids = JuliaTestEnv.addprocs(hosts; sshflags=sshflags)
     @test length(new_pids) == length(hosts)
     test_n_remove_pids(new_pids)
 
     print("\nMixed ssh addprocs with :auto\n")
-    new_pids = addprocs_with_testenv(["localhost", ("127.0.0.1", :auto), "localhost"]; sshflags=sshflags)
+    new_pids = JuliaTestEnv.addprocs(["localhost", ("127.0.0.1", :auto), "localhost"]; sshflags=sshflags)
     @test length(new_pids) == (2 + Sys.CPU_CORES)
     test_n_remove_pids(new_pids)
 
     print("\nMixed ssh addprocs with numeric counts\n")
-    new_pids = addprocs_with_testenv([("localhost", 2), ("127.0.0.1", 2), "localhost"]; sshflags=sshflags)
+    new_pids = JuliaTestEnv.addprocs([("localhost", 2), ("127.0.0.1", 2), "localhost"]; sshflags=sshflags)
     @test length(new_pids) == 5
     test_n_remove_pids(new_pids)
 
     print("\nssh addprocs with tunnel\n")
-    new_pids = addprocs_with_testenv([("localhost", num_workers)]; tunnel=true, sshflags=sshflags)
+    new_pids = JuliaTestEnv.addprocs([("localhost", num_workers)]; tunnel=true, sshflags=sshflags)
     @test length(new_pids) == num_workers
     test_n_remove_pids(new_pids)
 
@@ -970,14 +970,14 @@ if is_unix() # aka have ssh
     h4 = "$h3 $(string(getipaddr()))"
     h5 = "$h4:9300"
 
-    new_pids = addprocs_with_testenv([h1, h2, h3, h4, h5]; sshflags=sshflags)
+    new_pids = JuliaTestEnv.addprocs([h1, h2, h3, h4, h5]; sshflags=sshflags)
     @test length(new_pids) == 5
     test_n_remove_pids(new_pids)
 
     print("\nkeyword arg exename\n")
     for exename in [`$(joinpath(JULIA_HOME, Base.julia_exename()))`, "$(joinpath(JULIA_HOME, Base.julia_exename()))"]
-        for addp_func in [()->addprocs_with_testenv(["localhost"]; exename=exename, exeflags=test_exeflags, sshflags=sshflags),
-                          ()->addprocs_with_testenv(1; exename=exename, exeflags=test_exeflags)]
+        for addp_func in [()->JuliaTestEnv.addprocs(["localhost"]; exename=exename, exeflags=JuliaTestEnv.exeflags, sshflags=sshflags),
+                          ()->JuliaTestEnv.addprocs(1; exename=exename, exeflags=JuliaTestEnv.exeflags)]
 
             new_pids = addp_func()
             @test length(new_pids) == 1
@@ -1208,7 +1208,7 @@ function test_add_procs_threaded_blas()
     master_blas_thread_count = get_num_threads()
 
     # Test with default enable_threaded_blas false
-    processes_added = addprocs_with_testenv(2)
+    processes_added = JuliaTestEnv.addprocs(2)
     for proc_id in processes_added
         test_blas_config(proc_id, false)
     end
@@ -1223,7 +1223,7 @@ function test_add_procs_threaded_blas()
     end
     rmprocs(processes_added)
 
-    processes_added = addprocs_with_testenv(2, enable_threaded_blas=true)
+    processes_added = JuliaTestEnv.addprocs(2, enable_threaded_blas=true)
     for proc_id in processes_added
         test_blas_config(proc_id, true)
     end
@@ -1244,7 +1244,7 @@ test_add_procs_threaded_blas()
 #19687
 # ensure no race conditions between rmprocs and addprocs
 for i in 1:5
-    p = addprocs_with_testenv(1)[1]
+    p = JuliaTestEnv.addprocs(1)[1]
     @spawnat p sleep(5)
     rmprocs(p; waitfor=0)
 end
@@ -1252,7 +1252,7 @@ end
 # Test if a wait has been called on rmprocs(...;waitfor=0), further remotecalls
 # don't throw errors.
 for i in 1:5
-    p = addprocs_with_testenv(1)[1]
+    p = JuliaTestEnv.addprocs(1)[1]
     np = nprocs()
     @spawnat p sleep(5)
     wait(rmprocs(p; waitfor=0))
@@ -1264,7 +1264,7 @@ end
 
 # Test that an exception is thrown if workers are unable to be removed within requested time.
 if DoFullTest
-    pids=addprocs_with_testenv(4);
+    pids=JuliaTestEnv.addprocs(4);
     @test_throws ErrorException rmprocs(pids; waitfor=0.001);
     # wait for workers to be removed
     while any(x -> (x in procs()), pids)
@@ -1273,9 +1273,9 @@ if DoFullTest
 end
 
 # Test addprocs/rmprocs from master node only
-for f in [ ()->addprocs(1; exeflags=test_exeflags), ()->rmprocs(workers()) ]
+for f in [ exeflags -> addprocs(1; exeflags=exeflags), _exeflags -> rmprocs(workers()) ]
     try
-        remotecall_fetch(f, id_other)
+        remotecall_fetch(f, id_other, JuliaTestEnv.exeflags)
         error("Unexpected")
     catch ex
         @test isa(ex, RemoteException)
@@ -1319,13 +1319,13 @@ end
 testruns = Any[]
 
 if DoFullTest
-    append!(testruns, [(()->addprocs_with_testenv(["errorhost20372"]), "Unable to read host:port string from worker. Launch command exited with error?", ())])
+    append!(testruns, [(()->JuliaTestEnv.addprocs(["errorhost20372"]), "Unable to read host:port string from worker. Launch command exited with error?", ())])
 end
 
 append!(testruns, [
-    (()->addprocs_with_testenv(ErrorSimulator(:exit)), "Unable to read host:port string from worker. Launch command exited with error?", ()),
-    (()->addprocs_with_testenv(ErrorSimulator(:ntries)), "Unexpected output from worker launch command. Host:port string not found.", ()),
-    (()->addprocs_with_testenv(ErrorSimulator(:timeout)), "Timed out waiting to read host:port string from worker.", ("JULIA_WORKER_TIMEOUT"=>"1",))
+    (()->JuliaTestEnv.addprocs(ErrorSimulator(:exit)), "Unable to read host:port string from worker. Launch command exited with error?", ()),
+    (()->JuliaTestEnv.addprocs(ErrorSimulator(:ntries)), "Unexpected output from worker launch command. Host:port string not found.", ()),
+    (()->JuliaTestEnv.addprocs(ErrorSimulator(:timeout)), "Timed out waiting to read host:port string from worker.", ("JULIA_WORKER_TIMEOUT"=>"1",))
 ])
 
 for (addp_testf, expected_errstr, env) in testruns
