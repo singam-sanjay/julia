@@ -539,6 +539,7 @@ cleanall: clean
 	@-$(MAKE) -C $(BUILDROOT)/src clean-flisp clean-support
 	@-$(MAKE) -C $(BUILDROOT)/deps clean-libuv
 	-rm -fr $(build_prefix) $(build_staging)
+	echo 'FC := gfortran-6' > Make.user
 
 distcleanall: cleanall
 	@-$(MAKE) -C $(BUILDROOT)/deps distcleanall
