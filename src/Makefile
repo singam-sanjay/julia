@@ -59,8 +59,9 @@ ifeq ($(OS),WININT)
 ENV_CUDA_PATH := ${CUDA_PATH}
 ifeq($(ENV_CUDA_PATH),)
 CUDALIB_INCLUDE_DIR := "C:\Program/ Files\NVIDIA/ GPU/ Computing/ Toolkit\CUDA\???"
-endif
+else
 CUDALIB_INCLUDE_DIR := $(ENV_CUDA_PATH)
+endif
 endif
 endif
 endif
