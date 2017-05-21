@@ -52,6 +52,19 @@ endif
 
 LLVMLINK :=
 
+ifeq ($(USE_POLLY_ACC),1)
+ifeq ($(CUDALIB_INCLUDE_DIR),)
+CUDALIB_INCLUDE_DIR := /usr/local/cuda/include
+ifeq ($(OS),WININT)
+ENV_CUDA_PATH := ${CUDA_PATH}
+ifeq($(ENV_CUDA_PATH),)
+CUDALIB_INCLUDE_DIR := "C:\Program/ Files\NVIDIA/ GPU/ Computing/ Toolkit\CUDA\???"
+endif
+CUDALIB_INCLUDE_DIR := $(ENV_CUDA_PATH)
+endif
+endif
+endif
+
 ifeq ($(JULIACODEGEN),LLVM)
 SRCS += codegen jitlayers disasm debuginfo llvm-simdloop llvm-ptls llvm-gcroot cgmemmgr
 FLAGS += -I$(shell $(LLVM_CONFIG_HOST) --includedir)

@@ -239,9 +239,9 @@ BUILD_LLVM_CLANG := 0
 BUILD_LLDB := 0
 
 # Options to enable Polly and its code-generation options
-USE_POLLY := 0
+USE_POLLY := 1
 USE_POLLY_OPENMP := 0  # Enable OpenMP code-generation
-USE_POLLY_ACC := 0     # Enable GPU code-generation
+USE_POLLY_ACC := 1     # Enable GPU code-generation
 CUDALIB_INCLUDE_DIR := /usr/local/cuda/include
 
 # Cross-compile
