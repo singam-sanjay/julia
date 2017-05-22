@@ -54,16 +54,17 @@ LLVMLINK :=
 
 ifeq ($(USE_POLLY_ACC),1)
 ifeq ($(CUDALIB_INCLUDE_DIR),)
-ifeq ($(OS),WININT)
+ifeq ($(OS),WINNT)
 ENV_CUDA_PATH := ${CUDA_PATH}
 ifeq ($(ENV_CUDA_PATH),)
-CUDALIB_INCLUDE_DIR := "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\include"
+$(error Path to CUDA header files unavilable)
 else
-CUDALIB_INCLUDE_DIR := $(ENV_CUDA_PATH)\include
+CUDALIB_INCLUDE_DIR := $(ENV_CUDA_PATH)/Include
 endif
 else
 CUDALIB_INCLUDE_DIR := /usr/local/cuda/include
 endif
+$(warning Using default path to CUDA header files : ${CUDALIB_INCLUDE_DIR} )
 endif
 endif
 
