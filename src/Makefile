@@ -52,6 +52,9 @@ endif
 
 LLVMLINK :=
 
+$(info USE_POLLY_ACC-$(USE_POLLY_ACC))
+$(info OS=$(OS))
+
 ifeq ($(USE_POLLY_ACC),1)
 $(info inside USE_POLLY_ACC)
 ifeq ($(CUDALIB_INCLUDE_DIR),)
