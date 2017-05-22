@@ -55,11 +55,10 @@ LLVMLINK :=
 ifeq ($(USE_POLLY_ACC),1)
 ifeq ($(CUDALIB_INCLUDE_DIR),)
 ifeq ($(OS),WINNT)
-ENV_CUDA_PATH := ${CUDA_PATH}
-ifeq ($(ENV_CUDA_PATH),)
+ifndef CUDA_PATH
 $(error Path to CUDA header files unavilable)
 else
-CUDALIB_INCLUDE_DIR := $(ENV_CUDA_PATH)/Include
+CUDALIB_INCLUDE_DIR := $(CUDA_PATH)/Include
 endif
 else
 CUDALIB_INCLUDE_DIR := /usr/local/cuda/include
