@@ -53,8 +53,11 @@ endif
 LLVMLINK :=
 
 ifeq ($(USE_POLLY_ACC),1)
+$(info inside USE_POLLY_ACC)
 ifeq ($(CUDALIB_INCLUDE_DIR),)
+$(info inside CUDALIB empty)
 ifeq ($(OS),WINNT)
+$(info inside WINNT)
 ifndef CUDA_PATH
 $(error Path to CUDA header files unavilable)
 else
