@@ -68,8 +68,6 @@ $(warning Using default path to CUDA header files : ${CUDALIB_INCLUDE_DIR} )
 endif
 endif
 
-$(info $(CUDALIB_INCLUDE_DIR))
-
 ifeq ($(JULIACODEGEN),LLVM)
 SRCS += codegen jitlayers disasm debuginfo llvm-simdloop llvm-ptls llvm-gcroot cgmemmgr
 FLAGS += -I$(shell $(LLVM_CONFIG_HOST) --includedir)

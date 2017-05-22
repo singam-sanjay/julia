@@ -243,7 +243,7 @@ USE_POLLY := 1
 LLVM_VER := svn
 USE_POLLY_OPENMP := 0  # Enable OpenMP code-generation
 USE_POLLY_ACC := 1     # Enable GPU code-generation
-CUDALIB_INCLUDE_DIR := /usr/local/cuda/include
+CUDALIB_INCLUDE_DIR :=
 
 # Cross-compile
 #XC_HOST := i686-w64-mingw32
