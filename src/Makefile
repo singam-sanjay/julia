@@ -68,7 +68,7 @@ $(warning Using default path to CUDA header files : ${CUDALIB_INCLUDE_DIR} )
 endif
 endif
 
-$(info Hello!!! $(CUDALIB_INCLUDE_DIR))
+$(info Hello!!! QQQ $(CUDALIB_INCLUDE_DIR) QQQ )
 
 ifeq ($(JULIACODEGEN),LLVM)
 SRCS += codegen jitlayers disasm debuginfo llvm-simdloop llvm-ptls llvm-gcroot cgmemmgr
