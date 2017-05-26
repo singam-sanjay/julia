@@ -54,7 +54,7 @@ SRCS += codegen jitlayers disasm debuginfo llvm-simdloop llvm-ptls llvm-late-gc-
 FLAGS += -I$(shell $(LLVM_CONFIG_HOST) --includedir)
 LLVM_LIBS := all
 ifeq ($(USE_POLLY),1)
-LLVMLINK += -lPolly -lPollyISL
+LLVMLINK += -lPolly -lPollyISL -lPollyPPCG -Wl,-rpath=$(shell $(LLVM_CONFIG_HOST) --libdir),--no-as-needed -lGPURuntime 
 FLAGS += -I$(shell $(LLVM_CONFIG_HOST) --src-root)/tools/polly/include
 FLAGS += -I$(shell $(LLVM_CONFIG_HOST) --obj-root)/tools/polly/include
 FLAGS += -DUSE_POLLY
