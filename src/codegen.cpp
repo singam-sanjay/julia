@@ -6973,10 +6973,11 @@ extern "C" void *jl_init_llvm(void)
     initializeAnalysis(Registry);
 #endif
 
-    InitializeNativeTarget();
-    InitializeNativeTargetAsmPrinter();
-    InitializeNativeTargetAsmParser();
-    InitializeNativeTargetDisassembler();
+    InitializeAllTargets();
+    InitializeAllTargetMCs();
+    InitializeAllAsmPrinters();
+    InitializeAllDisassemblers();
+    InitializeAllAsmParsers();
 
     Module *m, *engine_module;
     engine_module = new Module("julia", jl_LLVMContext);
