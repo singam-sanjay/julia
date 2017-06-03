@@ -150,6 +150,11 @@ end
 include("char.jl")
 include("strings/string.jl")
 
+# The polyhedral optimizer Polly
+include("polly.jl")
+importall .Polly
+
+
 # SIMD loops
 include("simdloop.jl")
 importall .SimdLoop
